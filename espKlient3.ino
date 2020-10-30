@@ -13,10 +13,15 @@
 
 
 
+IPAddress ip(192,168,8,200);   //static ip
+IPAddress gateway(192,168,8,254);   
+IPAddress subnet(255,255,255,0);   
 WiFiServer server(80);
 
 const char* ssid     = "NoIntetnet";
 const char* password = "password";
+
+  
 
 String header;
 String valueStringH = String(5);
@@ -28,6 +33,7 @@ int globalR, globalG, globalB;
 
 void HSVtoRGB(int H, int S = 100, int V = 100);
 void turnRGB(int, int, int);
+int modeLED = 0;
 
 void setup() {
 
@@ -42,6 +48,7 @@ void setup() {
   Serial.print("Connecting to ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
+  WiFi.config(ip, gateway, subnet);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -77,25 +84,34 @@ void loop() {
       client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
       client.println("<link rel=\"icon\" href=\"data:,\">");
       client.println("<style>body { text-align: center; font-family: \"Trebuchet MS\", Arial; margin-left:auto; margin-right:auto;}");
-      client.println(".slider { width: 300px; }</style>");
-      // веб-страница:
-      client.println("</head><body><h1>LED WIFI</h1>");
+      client.println(".inputH {  background: linear-gradient(to right, hsl(0, 100%, 50%) 0%,hsl(14.4,100%,51%) 4%,hsl(28.8,100%,51%) 8%,hsl(43.2,100%,51%) 12%,hsl(57.6,100%,51%) 16%,hsl(72,100%,51%) 20%,hsl(86.4,100%,51%) 24%,hsl(100.8,100%,51%) 28%,hsl(115.2,100%,51%) 32%,hsl(129.6,100%,51%) 36%,hsl(144,100%,51%) 40%,hsl(158.4,100%,51%) 44%,hsl(172.8,100%,51%) 48%,hsl(187.2,100%,51%) 52%,hsl(201.6,100%,51%) 56%,hsl(216,100%,51%) 60%,hsl(230.4,100%,51%) 64%,hsl(244.8,100%,51%) 68%,hsl(259.2,100%,51%) 72%,hsl(273.6,100%,51%) 76%,hsl(288,100%,51%) 80%,hsl(302.4,100%,51%) 84%,hsl(316.8,100%,51%) 88%,hsl(331.2,100%,51%) 92%,hsl(345.6,100%,51%) 96%,hsl(360,100%,51%) 100%);}");
+      client.println(".inputS {  background: linear-gradient(to right, #ffffff 0%, hsl(" + valueStringH + ", 100%, 100%) 100%);}");
+      client.println(".inputV {  background: linear-gradient(to right, #000000 0%, #ffffff 100%);}");
+      client.println(".divColor{  width: 50px;height: 50px;background: hsl(" + valueStringH + ", 100%, 50%);border-radius: 25px;margin: auto;}");
+      client.println("input[type=range] {    -webkit-appearance: none;     border-color: #000000;  border: 1px solid #000000;}");
+      client.println("input[type='range']::-webkit-slider-thumb {-webkit-appearance: none;background-color: #ecf0f1;border: 1px solid #bdc3c7;width: 20px;height: 20px;border-radius: 10px;cursor: pointer;}");
 
+      client.println(".slider { width: 300px;  border-radius: 4px; } </style> ");
+      // веб-страница:
+      client.println(" </head> <body><h1>LED WIFI </h1 > ");
+      client.println("<div class = \"divColor\"></div>");
       client.println("<p>Hue: <span id=\"sliderH\">" + valueStringH + "</span>");
-      client.println("<input type=\"range\" min=\"0\" max=\"360\" class=\"slider\" id=\"HSlider\" onchange=\"SliderH(this.value)\" value=\"" + valueStringH + "\"/></p>");
+      client.println("<input type=\"range\" min=\"0\" max=\"360\" class=\"slider inputH\" id=\"HSlider\" onchange=\"SliderH(this.value)\" value=\"" + valueStringH + "\"/></p>");
 
       client.println("<p>Saturation: <span id=\"sliderS\">" + valueStringS + "</span>");
-      client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"SSlider\" onchange=\"SliderS(this.value)\" value=\"" + valueStringS + "\"/> </p>");
+      client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputS\" id=\"SSlider\" onchange=\"SliderS(this.value)\" value=\"" + valueStringS + "\"/> </p>");
 
       client.println("<p>Brightness: <span id=\"sliderV\">" + valueStringV + "</span>");
-      client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
+      client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
 
 
       client.println("<script>var slideH = document.getElementById(\"HSlider\");");
       client.println("var slH = document.getElementById(\"sliderH\");");
       client.println("slH.innerHTML = slideH.value;");
-      client.println("slideH.oninput = function() {slH.innerHTML = this.value; fetch(\"/?value=\" + this.value + \"_\" + slideS.value + \"_\" + slideV.value + \"&\"); }");
-      client.println("function SliderH(pos) {slH.innerHTML = pos; } ");
+      client.println("slideH.oninput = function() {slH.innerHTML = this.value; fetch(\"/?value=\" + this.value + \"_\" + slideS.value + \"_\" + slideV.value + \"&\");");
+      client.println("document.getElementsByClassName('divColor')[0].style.background=\"hsl(\"+slideH.value+\", 100%, 50%)\";");
+      client.println("slideS.style.background = \"linear-gradient(to right, #ffffff 0%, hsl(\"+slideH.value+\", 100%, 50%) 100%)\";}");
+        client.println("function SliderH(pos) {slH.innerHTML = pos; } ");
 
       client.println("var slideS = document.getElementById(\"SSlider\");");
       client.println("var slS = document.getElementById(\"sliderS\");");
