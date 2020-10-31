@@ -13,15 +13,15 @@
 
 
 
-IPAddress ip(192,168,8,200);   //static ip
-IPAddress gateway(192,168,8,254);   
-IPAddress subnet(255,255,255,0);   
+IPAddress ip(192, 168, 8, 200); //static ip
+IPAddress gateway(192, 168, 8, 254);
+IPAddress subnet(255, 255, 255, 0);
 WiFiServer server(80);
 
 const char* ssid     = "NoIntetnet";
 const char* password = "password";
 
-  
+
 
 String header;
 String valueStringH = String(5);
@@ -91,6 +91,10 @@ void loop() {
       client.println("input[type=range] {    -webkit-appearance: none;     border-color: #000000;  border: 1px solid #000000;}");
       client.println("input[type='range']::-webkit-slider-thumb {-webkit-appearance: none;background-color: #ecf0f1;border: 1px solid #bdc3c7;width: 20px;height: 20px;border-radius: 10px;cursor: pointer;}");
 
+      client.println(".button {    background-color: #008CBA;   border: none;    color: white;    padding: 15px 32px;    text-align: center;    text-decoration: none;    display: inline-block;    font-size: 16px;    transition-duration: 0.4s;}");
+      client.println(".button:hover {background-color: #006666;    color: white;}");
+      client.println(".button:active {  background-color: #3e8e41;  box-shadow: 0 5px #666;  transform: translateY(4px);  }");
+
       client.println(".slider { width: 300px;  border-radius: 4px; } </style> ");
       // веб-страница:
       client.println(" </head> <body><h1>LED WIFI </h1 > ");
@@ -105,13 +109,19 @@ void loop() {
       client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
 
 
+      client.println("<p> <input type=\"button\" value=\"1\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"2\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"3\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
+      client.println("<p> <input type=\"button\" value=\"4\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"5\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"6\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
+      client.println("<p> <input type=\"button\" value=\"7\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"8\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"9\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
+
+
+
       client.println("<script>var slideH = document.getElementById(\"HSlider\");");
       client.println("var slH = document.getElementById(\"sliderH\");");
       client.println("slH.innerHTML = slideH.value;");
       client.println("slideH.oninput = function() {slH.innerHTML = this.value; fetch(\"/?value=\" + this.value + \"_\" + slideS.value + \"_\" + slideV.value + \"&\");");
       client.println("document.getElementsByClassName('divColor')[0].style.background=\"hsl(\"+slideH.value+\", 100%, 50%)\";");
       client.println("slideS.style.background = \"linear-gradient(to right, #ffffff 0%, hsl(\"+slideH.value+\", 100%, 50%) 100%)\";}");
-        client.println("function SliderH(pos) {slH.innerHTML = pos; } ");
+      client.println("function SliderH(pos) {slH.innerHTML = pos; } ");
 
       client.println("var slideS = document.getElementById(\"SSlider\");");
       client.println("var slS = document.getElementById(\"sliderS\");");
@@ -126,6 +136,8 @@ void loop() {
       client.println("function SliderV(pos) {slV.innerHTML = pos; } ");
 
 
+
+      client.println("function buttonClick(text){fetch(\"/?b=\" + text +\"&\");}");
 
 
 
@@ -155,6 +167,16 @@ void loop() {
         Serial.write(c);
         header += c;
         if (c == '\n') {
+          if (header.indexOf("GET /?b=") >= 0) {
+            pos1 = header.indexOf('=');
+            pos2 = header.indexOf('&');
+            String parseB;
+            for (int i = pos1 + 1; i < pos2; i++) {
+              parseB += header[i];
+            }
+            modeLED = parseB.toInt();
+            //Serial.println(parseB);
+          }
           //GET /?value=180& HTTP/1.1
           if (header.indexOf("GET /?value=") >= 0) {
             pos1 = header.indexOf('=');
