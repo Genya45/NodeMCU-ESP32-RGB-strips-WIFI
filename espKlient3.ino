@@ -27,13 +27,18 @@ String header;
 String valueStringH = String(5);
 String valueStringS = String(5);
 String valueStringV = String(5);
+String valueStringSp = String(5);
 int pos1 = 0;
 int pos2 = 0;
 int globalR, globalG, globalB;
 
 void HSVtoRGB(int H, int S = 100, int V = 100);
+void timerRunLed();
 void turnRGB(int, int, int);
 int modeLED = 0;
+
+unsigned long runTimer = 0;
+
 
 void setup() {
 
@@ -66,6 +71,7 @@ void loop() {
 
   digitalWrite(BUILTIN_LED, 1);
 
+  if(modeLED == 2)timerRunLed();  
   turnRGB(globalR, globalG, globalB);
 
   WiFiClient client = server.available();
@@ -87,6 +93,7 @@ void loop() {
       client.println(".inputH {  background: linear-gradient(to right, hsl(0, 100%, 50%) 0%,hsl(14.4,100%,51%) 4%,hsl(28.8,100%,51%) 8%,hsl(43.2,100%,51%) 12%,hsl(57.6,100%,51%) 16%,hsl(72,100%,51%) 20%,hsl(86.4,100%,51%) 24%,hsl(100.8,100%,51%) 28%,hsl(115.2,100%,51%) 32%,hsl(129.6,100%,51%) 36%,hsl(144,100%,51%) 40%,hsl(158.4,100%,51%) 44%,hsl(172.8,100%,51%) 48%,hsl(187.2,100%,51%) 52%,hsl(201.6,100%,51%) 56%,hsl(216,100%,51%) 60%,hsl(230.4,100%,51%) 64%,hsl(244.8,100%,51%) 68%,hsl(259.2,100%,51%) 72%,hsl(273.6,100%,51%) 76%,hsl(288,100%,51%) 80%,hsl(302.4,100%,51%) 84%,hsl(316.8,100%,51%) 88%,hsl(331.2,100%,51%) 92%,hsl(345.6,100%,51%) 96%,hsl(360,100%,51%) 100%);}");
       client.println(".inputS {  background: linear-gradient(to right, #ffffff 0%, hsl(" + valueStringH + ", 100%, 100%) 100%);}");
       client.println(".inputV {  background: linear-gradient(to right, #000000 0%, #ffffff 100%);}");
+      client.println(".inputSp {  background: black;}");
       client.println(".divColor{  width: 50px;height: 50px;background: hsl(" + valueStringH + ", 100%, 50%);border-radius: 25px;margin: auto;}");
       client.println("input[type=range] {    -webkit-appearance: none;     border-color: #000000;  border: 1px solid #000000;}");
       client.println("input[type='range']::-webkit-slider-thumb {-webkit-appearance: none;background-color: #ecf0f1;border: 1px solid #bdc3c7;width: 20px;height: 20px;border-radius: 10px;cursor: pointer;}");
@@ -108,6 +115,9 @@ void loop() {
       client.println("<p>Brightness: <span id=\"sliderV\">" + valueStringV + "</span>");
       client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
 
+      client.println("<p>Speed: <span id=\"sliderSp\">" + valueStringSp + "</span>");
+      client.println("<input type=\"range\" min=\"0\" max=\"1000\" class=\"slider inputSp\" id=\"SpSlider\" onchange=\"SliderSp(this.value)\" value=\"" + valueStringSp + "\"/> </p>");
+
 
       client.println("<p> <input type=\"button\" value=\"1\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"2\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"3\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
       client.println("<p> <input type=\"button\" value=\"4\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"5\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"6\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
@@ -118,7 +128,7 @@ void loop() {
       client.println("<script>var slideH = document.getElementById(\"HSlider\");");
       client.println("var slH = document.getElementById(\"sliderH\");");
       client.println("slH.innerHTML = slideH.value;");
-      client.println("slideH.oninput = function() {slH.innerHTML = this.value; fetch(\"/?value=\" + this.value + \"_\" + slideS.value + \"_\" + slideV.value + \"&\");");
+      client.println("slideH.oninput = function() {slH.innerHTML = this.value; fetch(\"/?value=\" + this.value + \"_\" + slideS.value + \"_\" + slideV.value + \"_\" + slideSp.value + \"&\");");
       client.println("document.getElementsByClassName('divColor')[0].style.background=\"hsl(\"+slideH.value+\", 100%, 50%)\";");
       client.println("slideS.style.background = \"linear-gradient(to right, #ffffff 0%, hsl(\"+slideH.value+\", 100%, 50%) 100%)\";}");
       client.println("function SliderH(pos) {slH.innerHTML = pos; } ");
@@ -126,14 +136,20 @@ void loop() {
       client.println("var slideS = document.getElementById(\"SSlider\");");
       client.println("var slS = document.getElementById(\"sliderS\");");
       client.println("slS.innerHTML = slideS.value;");
-      client.println("slideS.oninput = function() {slS.innerHTML = this.value; fetch(\"/?value=\" + slideH.value + \"_\" + this.value  + \"_\" + slideV.value + \"&\"); }");
+      client.println("slideS.oninput = function() {slS.innerHTML = this.value; fetch(\"/?value=\" + slideH.value + \"_\" + this.value  + \"_\" + slideV.value + \"_\" + slideSp.value  + \"&\"); }");
       client.println("function SliderS(pos) {slS.innerHTML = pos; } ");
 
       client.println("var slideV = document.getElementById(\"VSlider\");");
       client.println("var slV = document.getElementById(\"sliderV\");");
       client.println("slV.innerHTML = slideV.value;");
-      client.println("slideV.oninput = function() {slV.innerHTML = this.value; fetch(\"/?value=\" + slideH.value + \"_\" + slideS.value + \"_\" + this.value + \"&\");  }");
+      client.println("slideV.oninput = function() {slV.innerHTML = this.value; fetch(\"/?value=\" + slideH.value + \"_\" + slideS.value + \"_\" + this.value + \"_\" + slideSp.value + \"&\");  }");
       client.println("function SliderV(pos) {slV.innerHTML = pos; } ");
+
+      client.println("var slideSp = document.getElementById(\"SpSlider\");");
+      client.println("var slSp = document.getElementById(\"sliderSp\");");
+      client.println("slSp.innerHTML = slideSp.value;");
+      client.println("slideSp.oninput = function() {slSp.innerHTML = this.value; fetch(\"/?value=\" + slideH.value + \"_\" + slideS.value + \"_\" + slideV.value + \"_\" + this.value + \"&\");  }");
+      client.println("function SliderSp(pos) {slSp.innerHTML = pos; } ");
 
 
 
@@ -175,14 +191,14 @@ void loop() {
               parseB += header[i];
             }
             modeLED = parseB.toInt();
-            //Serial.println(parseB);
+            Serial.println(parseB);
           }
           //GET /?value=180& HTTP/1.1
           if (header.indexOf("GET /?value=") >= 0) {
             pos1 = header.indexOf('=');
             pos2 = header.indexOf('&');
 
-            String getH, getS, getV;
+            String getH, getS, getV, getSp;
 
             for (int i = pos1 + 1, bb = 0; i < pos2; i++) {
               if (header[i] == '_') {
@@ -199,6 +215,9 @@ void loop() {
                 case 2:
                   getV += header[i];
                   break;
+                case 3:
+                  getSp += header[i];
+                  break;
               }
 
             }
@@ -206,9 +225,11 @@ void loop() {
             Serial.println(getH);
             Serial.println(getS);
             Serial.println(getV);
-            valueStringH = getH;
+            Serial.println(getSp);
+            if(modeLED == 1)valueStringH = getH;
             valueStringS = getS;
             valueStringV = getV;
+            valueStringSp = getSp;
 
             HSVtoRGB(getH.toInt(), getS.toInt(), getV.toInt());
           }
@@ -298,4 +319,15 @@ void turnRGB(int r, int g, int b) {
   analogWrite(ledPinR, maxPMW - r);
   analogWrite(ledPinG, maxPMW - g);
   analogWrite(ledPinB, maxPMW - b);
+}
+
+
+void timerRunLed(){
+  if(millis()> (runTimer + valueStringSp.toInt())){
+    valueStringH = valueStringH.toInt() + 1;
+    if(valueStringH =="361")valueStringH = "0";
+    HSVtoRGB(valueStringH.toInt(), valueStringS.toInt(), valueStringV.toInt());
+    Serial.println(valueStringH);
+    runTimer = millis();
+  }
 }
