@@ -1,51 +1,45 @@
 
 #include <ESP8266WiFi.h>
 
-//#define ledPinR 14 // D5
-//#define ledPinG 12 // D6
-//#define ledPinB 13 // D7
+#define maxPMW 255  //Максимальный ШИМ
 
 //v1
 #define ledPinR 12 // D6
 #define ledPinG 14 // D5
 #define ledPinB 15 // D8
+IPAddress ip(192, 168, 8, 200);     //Статический ip
 
 //v2
 //#define ledPinR 12 // D6
 //#define ledPinG 14 // D5
 //#define ledPinB 13 // D7
+//IPAddress ip(192, 168, 8, 201);     //Статический ip
 
-#define maxPMW 255
+IPAddress gateway(192, 168, 8, 254);  //Маска
+IPAddress subnet(255, 255, 255, 0); //Подсеть
+WiFiServer server(80);  //Порт
 
+const char* ssid     = "FreeNet"; //Имя точки доступа
+const char* password = "password1"; //Пароль точки доступа
 
+String header;  //Заголовок, передаваемый сервером клиенту
+String valueStringH = String(100);  //Переменная хранения оттенка (0-360)
+String valueStringS = String(100);  //Переменная хранения насыщенности  (0-100)
+String valueStringV = String(100);  //Переменная хранения яркости (0-100)
+String valueStringSp = String(400);  //Переменная хранения скорости (0-500)
+int globalR, globalG, globalB;  //Переменные хранения цвета формата RGB
 
-IPAddress ip(192, 168, 8, 200); //static ip
-IPAddress gateway(192, 168, 8, 254);
-IPAddress subnet(255, 255, 255, 0);
-WiFiServer server(80);
+void HSVtoRGB(int H, int S = 100, int V = 100); //Функция перевода их формата HSV в RGB
+void timerRunLed();   //Режим плавной смены времени
+void runningLights();   //Режим бегущей дорожки
+void runningLights2();   //Режим бегущей дорожки2
+void police();  //Режим полицейской моргалки
+void turnRGB(int, int, int);  //Функция отображения цвета на ленте
 
-const char* ssid     = "FreeNet";
-const char* password = "password1";
+int modeLED = 3;  //Выбор режима 
+byte mode5CurrentColor = 0; 
 
-
-
-String header;
-String valueStringH = String(5);
-String valueStringS = String(5);
-String valueStringV = String(5);
-String valueStringSp = String(5);
-int pos1 = 0;
-int pos2 = 0;
-int globalR, globalG, globalB;
-
-void HSVtoRGB(int H, int S = 100, int V = 100);
-void timerRunLed();
-void runningLights();
-void police();
-void turnRGB(int, int, int);
-int modeLED = 0;
-
-unsigned long runTimer = 0;
+unsigned long runTimer = 0; //Переменная хранения времени
 
 
 void setup() {
@@ -56,16 +50,16 @@ void setup() {
   pinMode(ledPinG, OUTPUT);
   pinMode(ledPinB, OUTPUT);
   pinMode(BUILTIN_LED, OUTPUT);
-  analogWriteRange(maxPMW);
 
+  analogWriteRange(maxPMW); //Настройка ШИМ
 
   //Serial.print("Connecting to ");
   //Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  WiFi.config(ip, gateway, subnet);
+  WiFi.begin(ssid, password); //Подключение к точке доступа
+  WiFi.config(ip, gateway, subnet); //Настройка подключения
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+  while (WiFi.status() != WL_CONNECTED) {  //Ожидание подключения к точке доступа
+    delay(500); //задержка на 500 миллисекунд
     //Serial.print(".");
   }
 
@@ -73,50 +67,51 @@ void setup() {
   //Serial.println("WiFi connected.");
   //Serial.println("IP address: ");
   //Serial.println(WiFi.localIP());
-  server.begin();
+  server.begin(); //Запуск сервера
 }
 
 void loop() {
 
-  digitalWrite(BUILTIN_LED, 1);
+  
+  digitalWrite(BUILTIN_LED, 1); //Включение вспомогательного светодиода
+  //Выбор режима свечения
   if (modeLED == 2)timerRunLed();
   if (modeLED == 3)runningLights();
-  if (modeLED == 4)police();
+  if (modeLED == 4)police();  
+  if (modeLED == 5)runningLights2();
   turnRGB(globalR, globalG, globalB);
 
-  WiFiClient client = server.available();
+  WiFiClient client = server.available(); //Подключение клиента
 
-  if (client) {
+  if (client) { //Если клиент присоеденился
 
-
-
-
-    digitalWrite(BUILTIN_LED, 0);
+    digitalWrite(BUILTIN_LED, 0); //Отключение вспомогательного светодиода
     //Serial.println("New Client.");
-    String currentLine = "";
-    while (client.connected()) {
-      //turnRGB(globalR, globalG, globalB);
-      if (client.available()) {
-        char c = client.read();
-        //Serial.write(c);
-        header += c;
-        //Serial.println(header);
-        if (c == '\n') {
-          //Serial.println(header);
-          if (header.indexOf("GET /?b=") >= 0) {
+    
+    while (client.connected()) {  //Пока клиент не отключился
+      if (client.available()) { //Если клиент прислал данные
+        char c = client.read(); // Считать данные клиента
+        header += c;  //Добавить считанные данные в заголовок
+        
+        if (c == '\n') {  //Окончание строки означает завершение передачи запроса
+          
+          if (header.indexOf("GET /?b=") >= 0) {  //Если пользователь нажал кнопку
+            
+            int pos1 = 0, pos2 = 0;
             pos1 = header.indexOf('=');
             pos2 = header.indexOf('&');
             String parseB;
             for (int i = pos1 + 1; i < pos2; i++) {
               parseB += header[i];
             }
-            modeLED = parseB.toInt();
+            modeLED = parseB.toInt(); //После парсинга получаем режим
             //Serial.println(parseB);
           }
 
 
           //GET /?value=180& HTTP/1.1
-          if (header.indexOf("GET /?value=") >= 0) {
+          if (header.indexOf("GET /?value=") >= 0) {    //Если пользователь потянул слайдер         
+            int pos1 = 0, pos2 = 0;
             pos1 = header.indexOf('=');
             pos2 = header.indexOf('&');
 
@@ -148,16 +143,16 @@ void loop() {
             //Serial.println(getS);
             //Serial.println(getV);
             //Serial.println(getSp);
-            if (modeLED == 1)valueStringH = getH;
+            if (modeLED == 1)valueStringH = getH; //Если первый режим
             valueStringS = getS;
             valueStringV = getV;
             valueStringSp = getSp;
 
-            HSVtoRGB(getH.toInt(), getS.toInt(), getV.toInt());
+            HSVtoRGB(getH.toInt(), getS.toInt(), getV.toInt()); //Перевод в модель RGB
           }
-          else {
-            currentLine = "";
-            if (true) {
+          else {  //Если пользователь написал что-то в адресную строку или только открыл страницу
+            
+            if (true) { //Сделано блоком для удобства скрытия
               client.println("HTTP/1.1 200 OK");
               client.println("Content-type:text/html");
               client.println("Connection: close");
@@ -267,12 +262,12 @@ void loop() {
 
 
 
-          break;
+          break;  //завершить цикл
 
         }
       }
     }
-    header = "";
+    header = "";  //Очистка строки передачи данных
     //client.stop();
     //Serial.println("Client disconnected.");
     //Serial.println("");
@@ -282,7 +277,7 @@ void loop() {
 
 
 
-void HSVtoRGB(int H, int S, int V) {
+void HSVtoRGB(int H, int S, int V) {  //Перевод из HSV в RGB
 
   if (H == 360) {
     H = 0;
@@ -344,14 +339,14 @@ void HSVtoRGB(int H, int S, int V) {
 }
 
 
-void turnRGB(int r, int g, int b) {
+void turnRGB(int r, int g, int b) { //Отображение на ленте цвета
   analogWrite(ledPinR, maxPMW - r);
   analogWrite(ledPinG, maxPMW - g);
   analogWrite(ledPinB, maxPMW - b);
 }
 
 
-void timerRunLed() {
+void timerRunLed() {  //Режим плавной смены цвета
   if (millis() > (runTimer + valueStringSp.toInt())) {
     valueStringH = valueStringH.toInt() + 1;
     if (valueStringH == "361")valueStringH = "0";
@@ -361,7 +356,7 @@ void timerRunLed() {
   }
 }
 
-void runningLights() {
+void runningLights() {  //Режим гирлянды
   if (millis() < (runTimer + valueStringSp.toInt())) {
     valueStringH = "0";
   }
@@ -379,26 +374,33 @@ void runningLights() {
 }
 
 
-void police() {
+void police() {//Режим полицейской мигалки
   if (millis() < runTimer + valueStringSp.toInt()) {
     valueStringH = "0";
   }
 
-  if (millis() > runTimer + valueStringSp.toInt() && millis() < runTimer + valueStringSp.toInt() * 1.5)
+  if (millis() > runTimer + valueStringSp.toInt() && millis() < runTimer + valueStringSp.toInt() * 1.5){
     valueStringV = "0";
-  if (millis() > runTimer + valueStringSp.toInt() * 1.5 && millis() < runTimer + valueStringSp.toInt() * 2.5)
+  }
+    
+  if (millis() > runTimer + valueStringSp.toInt() * 1.5 && millis() < runTimer + valueStringSp.toInt() * 2.5){
     valueStringH = "0";
+    valueStringV = "100";
+  }
+    
   if (millis() > runTimer + valueStringSp.toInt() * 2.5 && millis() < runTimer + valueStringSp.toInt() * 3.5)
     valueStringV = "0";
 
 
   if (millis() > runTimer + valueStringSp.toInt() * 7 && millis() < runTimer + valueStringSp.toInt() * 8) {
     valueStringH = "240";
+    valueStringV = "100";
   }
   if (millis() > runTimer + valueStringSp.toInt() * 8 && millis() < runTimer + valueStringSp.toInt() * 8.5)
     valueStringV = "0";
   if (millis() > runTimer + valueStringSp.toInt() * 8.5 && millis() < runTimer + valueStringSp.toInt() * 9.5) {
     valueStringH = "240";
+    valueStringV = "100";
   }
   if (millis() > runTimer + valueStringSp.toInt() * 9.5 && millis() < runTimer + valueStringSp.toInt() * 10.5)
     valueStringV = "0";
@@ -406,4 +408,16 @@ void police() {
 
   if (millis() > runTimer + valueStringSp.toInt() * 10.5)
     runTimer = millis();
+}
+
+
+
+void runningLights2(){//Режим гирлянды с другими цветами
+  int curModeColor[] = {0, 60, 120,180,240,300};
+  if (millis() > (runTimer + valueStringSp.toInt())) {
+    runTimer = millis();
+    mode5CurrentColor++;
+  }
+  if(mode5CurrentColor >5)mode5CurrentColor = 0;
+  HSVtoRGB(curModeColor[mode5CurrentColor], valueStringS.toInt(), valueStringV.toInt());
 }
