@@ -169,33 +169,45 @@ void loop() {
               client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
               client.println("<link rel=\"icon\" href=\"data:,\">");
               client.println("<style>body { text-align: center; font-family: \"Trebuchet MS\", Arial; margin-left:auto; margin-right:auto;}");
+              
               client.println(".inputH {  background: linear-gradient(to right, hsl(0, 100%, 50%) 0%,hsl(14.4,100%,51%) 4%,hsl(28.8,100%,51%) 8%,hsl(43.2,100%,51%) 12%,hsl(57.6,100%,51%) 16%,hsl(72,100%,51%) 20%,hsl(86.4,100%,51%) 24%,hsl(100.8,100%,51%) 28%,hsl(115.2,100%,51%) 32%,hsl(129.6,100%,51%) 36%,hsl(144,100%,51%) 40%,hsl(158.4,100%,51%) 44%,hsl(172.8,100%,51%) 48%,hsl(187.2,100%,51%) 52%,hsl(201.6,100%,51%) 56%,hsl(216,100%,51%) 60%,hsl(230.4,100%,51%) 64%,hsl(244.8,100%,51%) 68%,hsl(259.2,100%,51%) 72%,hsl(273.6,100%,51%) 76%,hsl(288,100%,51%) 80%,hsl(302.4,100%,51%) 84%,hsl(316.8,100%,51%) 88%,hsl(331.2,100%,51%) 92%,hsl(345.6,100%,51%) 96%,hsl(360,100%,51%) 100%);}");
               client.println(".inputS {  background: linear-gradient(to right, #ffffff 0%, hsl(" + valueStringH + ", 100%, 100%) 100%);}");
               client.println(".inputV {  background: linear-gradient(to right, #000000 0%, #ffffff 100%);}");
-              client.println(".inputSp {  background: black;}");
-              client.println(".divColor{  width: 50px;height: 50px;background: hsl(" + valueStringH + ", 100%, 50%);border-radius: 25px;margin: auto;}");
+              client.println(".inputSp { background: linear-gradient(to right, #ffbb00, #ff0000);}");
+              
+              client.println(".divColor{  width: 50px;height: 50px;background: hsl(" + valueStringH + ", 100%, 50%);border-radius: 45px;margin: auto;}");
               client.println("input[type=range] {    -webkit-appearance: none;     border-color: #000000;  border: 1px solid #000000;}");
               client.println("input[type='range']::-webkit-slider-thumb {-webkit-appearance: none;background-color: #ecf0f1;border: 1px solid #bdc3c7;width: 20px;height: 20px;border-radius: 10px;cursor: pointer;}");
 
-              client.println(".button {    background-color: #008CBA;   border: none;    color: white;    padding: 15px 32px;    text-align: center;    text-decoration: none;    display: inline-block;    font-size: 16px;    transition-duration: 0.4s;}");
-              client.println(".button:hover {background-color: #006666;    color: white;}");
-              client.println(".button:active {  background-color: #3e8e41;  box-shadow: 0 5px #666;  transform: translateY(4px);  }");
+              client.println(".button {     background-color: rgb(83, 1, 116);   border: none; border-radius: 5%;    color: white;    padding: 15px 44px;    text-align: center;    text-decoration: none;    display: inline-block;    font-size: 16px;    transition-duration: 0.4s;}");
+              client.println(".button:hover {background-color:   rgb(114, 1, 207);    color: white;}");
+              client.println(".button:active {  background-color: #5f00cc;  box-shadow: 0 5px #666;  transform: translateY(4px);  }");
 
-              client.println(".slider { width: 300px;  border-radius: 4px; } </style> ");
+              client.println(".slider { width: 300px;  border-radius: 40px; }  ");
+
+              client.println("p {    display: block;    margin: 5px;}");
+              client.println("html {    background-color: #0d1117;    color: rgb(155, 2, 216);}");
+              client.println("span{    color:#9538ff;    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;}");
+              client.println("h1{    font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;}");
+              
+              client.println("</style>");
+
+
+
               // веб-страница:
               client.println(" </head> <body><h1>LED WIFI </h1 > ");
               client.println("<div class = \"divColor\"></div>");
-              client.println("<p>Hue: <span id=\"sliderH\">" + valueStringH + "</span>");
-              client.println("<input type=\"range\" min=\"0\" max=\"360\" class=\"slider inputH\" id=\"HSlider\" onchange=\"SliderH(this.value)\" value=\"" + valueStringH + "\"/></p>");
+              client.println("<p>Hue: <span id=\"sliderH\">" + valueStringH + "</p>");
+              client.println("<p><input type=\"range\" min=\"0\" max=\"360\" class=\"slider inputH\" id=\"HSlider\" onchange=\"SliderH(this.value)\" value=\"" + valueStringH + "\"/></p>");
 
-              client.println("<p>Saturation: <span id=\"sliderS\">" + valueStringS + "</span>");
-              client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputS\" id=\"SSlider\" onchange=\"SliderS(this.value)\" value=\"" + valueStringS + "\"/> </p>");
+              client.println("<p>Saturation: <span id=\"sliderS\">" + valueStringS + "</p>");
+              client.println("<p><input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputS\" id=\"SSlider\" onchange=\"SliderS(this.value)\" value=\"" + valueStringS + "\"/> </p>");
 
-              client.println("<p>Brightness: <span id=\"sliderV\">" + valueStringV + "</span>");
-              client.println("<input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
+              client.println("<p>Brightness: <span id=\"sliderV\">" + valueStringV + "</p>");
+              client.println("<p><input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
 
-              client.println("<p>Speed: <span id=\"sliderSp\">" + valueStringSp + "</span>");
-              client.println("<input type=\"range\" min=\"0\" max=\"500\" class=\"slider inputSp\" id=\"SpSlider\" onchange=\"SliderSp(this.value)\" value=\"" + valueStringSp + "\"/> </p>");
+              client.println("<p>Speed: <span id=\"sliderSp\">" + valueStringSp + "</p>");
+              client.println("<p><input type=\"range\" min=\"0\" max=\"500\" class=\"slider inputSp\" id=\"SpSlider\" onchange=\"SliderSp(this.value)\" value=\"" + valueStringSp + "\"/> </p>");
 
 
               client.println("<p> <input type=\"button\" value=\"1\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"2\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"3\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
@@ -249,6 +261,7 @@ void loop() {
               // выходим из цикла while():
 
             }
+
 
           }
 
