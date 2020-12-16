@@ -3,17 +3,17 @@
 
 #define maxPMW 255  //Максимальный ШИМ
 
-//v1
-#define ledPinR 12 // D6
-#define ledPinG 14 // D5
-#define ledPinB 15 // D8
-IPAddress ip(192, 168, 8, 200);     //Статический ip
-
-//v2
+////v1
 //#define ledPinR 12 // D6
 //#define ledPinG 14 // D5
-//#define ledPinB 13 // D7
-//IPAddress ip(192, 168, 8, 201);     //Статический ip
+//#define ledPinB 15 // D8
+//IPAddress ip(192, 168, 8, 200);     //Статический ip
+
+//v2
+#define ledPinR 12 // D6
+#define ledPinG 14 // D5
+#define ledPinB 13 // D7
+IPAddress ip(192, 168, 8, 201);     //Статический ip
 
 IPAddress gateway(192, 168, 8, 254);  //Маска
 IPAddress subnet(255, 255, 255, 0); //Подсеть
@@ -26,18 +26,19 @@ String header;  //Заголовок, передаваемый сервером 
 String valueStringH = String(100);  //Переменная хранения оттенка (0-360)
 String valueStringS = String(100);  //Переменная хранения насыщенности  (0-100)
 String valueStringV = String(100);  //Переменная хранения яркости (0-100)
-String valueStringSp = String(400);  //Переменная хранения скорости (0-500)
+String valueStringSp = String(400);  //Переменная хранения скорости (0-1000)
 int globalR, globalG, globalB;  //Переменные хранения цвета формата RGB
 
 void HSVtoRGB(int H, int S = 100, int V = 100); //Функция перевода их формата HSV в RGB
 void timerRunLed();   //Режим плавной смены времени
 void runningLights();   //Режим бегущей дорожки
 void runningLights2();   //Режим бегущей дорожки2
+void runningLights3();   //Режим бегущей дорожки3
 void police();  //Режим полицейской моргалки
 void turnRGB(int, int, int);  //Функция отображения цвета на ленте
 
 int modeLED = 3;  //Выбор режима 
-byte mode5CurrentColor = 0; 
+byte modeCurrentColor = 0; 
 
 unsigned long runTimer = 0; //Переменная хранения времени
 
@@ -79,6 +80,7 @@ void loop() {
   if (modeLED == 3)runningLights();
   if (modeLED == 4)police();  
   if (modeLED == 5)runningLights2();
+  if (modeLED == 6)runningLights3();
   turnRGB(globalR, globalG, globalB);
 
   WiFiClient client = server.available(); //Подключение клиента
@@ -202,7 +204,7 @@ void loop() {
               client.println("<p><input type=\"range\" min=\"0\" max=\"100\" class=\"slider inputV\" id=\"VSlider\" onchange=\"SliderV(this.value)\" value=\"" + valueStringV + "\"/> </p>");
 
               client.println("<p>Speed: <span id=\"sliderSp\">" + valueStringSp + "</p>");
-              client.println("<p><input type=\"range\" min=\"0\" max=\"500\" class=\"slider inputSp\" id=\"SpSlider\" onchange=\"SliderSp(this.value)\" value=\"" + valueStringSp + "\"/> </p>");
+              client.println("<p><input type=\"range\" min=\"0\" max=\"1000\" class=\"slider inputSp\" id=\"SpSlider\" onchange=\"SliderSp(this.value)\" value=\"" + valueStringSp + "\"/> </p>");
 
 
               client.println("<p> <input type=\"button\" value=\"1\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"2\" class=\"button\" onclick=\"buttonClick(this.value)\"> <input type=\"button\" value=\"3\" class=\"button\" onclick=\"buttonClick(this.value)\"> </p>");
@@ -346,8 +348,8 @@ void turnRGB(int r, int g, int b) { //Отображение на ленте ц�
 }
 
 
-void timerRunLed() {  //Режим плавной смены цвета
-  if (millis() > (runTimer + valueStringSp.toInt())) {
+void timerRunLed() { 
+  if (millis() > (runTimer + valueStringSp.toInt()/2)) {
     valueStringH = valueStringH.toInt() + 1;
     if (valueStringH == "361")valueStringH = "0";
     HSVtoRGB(valueStringH.toInt(), valueStringS.toInt(), valueStringV.toInt());
@@ -356,68 +358,86 @@ void timerRunLed() {  //Режим плавной смены цвета
   }
 }
 
-void runningLights() {  //Режим гирлянды
-  if (millis() < (runTimer + valueStringSp.toInt())) {
-    valueStringH = "0";
-  }
-  else if (millis() < (runTimer + 2 * valueStringSp.toInt())) {
-    valueStringH = "120";
-  }
-  else if (millis() < (runTimer + 3 * valueStringSp.toInt())) {
-    valueStringH = "240";
-  }
-  else {
+void runningLights() {
+  int curModeColor[] = {0, 120,240};
+  if (millis() > (runTimer + valueStringSp.toInt())) {
     runTimer = millis();
+    modeCurrentColor++;
   }
+  if(modeCurrentColor >2)modeCurrentColor = 0;
+  HSVtoRGB(curModeColor[modeCurrentColor], valueStringS.toInt(), valueStringV.toInt());
 
-  HSVtoRGB(valueStringH.toInt(), valueStringS.toInt(), valueStringV.toInt());
-}
-
-
-void police() {//Режим полицейской мигалки
-  if (millis() < runTimer + valueStringSp.toInt()) {
-    valueStringH = "0";
-  }
-
-  if (millis() > runTimer + valueStringSp.toInt() && millis() < runTimer + valueStringSp.toInt() * 1.5){
-    valueStringV = "0";
-  }
-    
-  if (millis() > runTimer + valueStringSp.toInt() * 1.5 && millis() < runTimer + valueStringSp.toInt() * 2.5){
-    valueStringH = "0";
-    valueStringV = "100";
-  }
-    
-  if (millis() > runTimer + valueStringSp.toInt() * 2.5 && millis() < runTimer + valueStringSp.toInt() * 3.5)
-    valueStringV = "0";
-
-
-  if (millis() > runTimer + valueStringSp.toInt() * 7 && millis() < runTimer + valueStringSp.toInt() * 8) {
-    valueStringH = "240";
-    valueStringV = "100";
-  }
-  if (millis() > runTimer + valueStringSp.toInt() * 8 && millis() < runTimer + valueStringSp.toInt() * 8.5)
-    valueStringV = "0";
-  if (millis() > runTimer + valueStringSp.toInt() * 8.5 && millis() < runTimer + valueStringSp.toInt() * 9.5) {
-    valueStringH = "240";
-    valueStringV = "100";
-  }
-  if (millis() > runTimer + valueStringSp.toInt() * 9.5 && millis() < runTimer + valueStringSp.toInt() * 10.5)
-    valueStringV = "0";
-
-
-  if (millis() > runTimer + valueStringSp.toInt() * 10.5)
-    runTimer = millis();
 }
 
 
 
-void runningLights2(){//Режим гирлянды с другими цветами
+void police(){
+    if(millis()<((runTimer+valueStringSp.toInt()))){
+      valueStringH = "0";
+      valueStringV = "100";
+    }
+    if(millis()>((runTimer+valueStringSp.toInt())) && millis()<((runTimer+valueStringSp.toInt()))*1.5){
+      valueStringH = "0";
+      valueStringV = "0";
+    }
+    if(millis()>(runTimer+valueStringSp.toInt())*1.5 && millis()<(runTimer+valueStringSp.toInt())*2.5){
+      valueStringH = "0";
+      valueStringV = "100";
+    }
+    if(millis()>(runTimer+valueStringSp.toInt())*2.5 && millis()<(runTimer+valueStringSp.toInt())*3.5){
+      valueStringH = "0";
+      valueStringV = "0";
+    }
+
+
+    if(millis()>(runTimer+valueStringSp.toInt())*7 && millis()<(runTimer+valueStringSp.toInt())*8){
+      valueStringH = "240";
+      valueStringV = "100";
+    }
+    if(millis()>(runTimer+valueStringSp.toInt())*8 && millis()<(runTimer+valueStringSp.toInt())*8.5){
+      valueStringH = "240";
+      valueStringV = "0";
+    }
+      
+    if(millis()>(runTimer+valueStringSp.toInt())*8.5 && millis()<(runTimer+valueStringSp.toInt())*9.5){
+      valueStringH = "240";
+      valueStringV = "100";
+    }
+    if(millis()>(runTimer+valueStringSp.toInt())*9.5 && millis()<(runTimer+valueStringSp.toInt())*10.5){
+      valueStringH = "240";
+      valueStringV = "0";
+    }
+      
+     
+      
+    if(millis()>(runTimer+valueStringSp.toInt())*10.5)
+      runTimer = millis();
+
+      
+    HSVtoRGB(valueStringH.toInt(), valueStringS.toInt(), valueStringV.toInt());
+
+  }
+
+
+
+
+
+void runningLights2(){
   int curModeColor[] = {0, 60, 120,180,240,300};
   if (millis() > (runTimer + valueStringSp.toInt())) {
     runTimer = millis();
-    mode5CurrentColor++;
+    modeCurrentColor++;
   }
-  if(mode5CurrentColor >5)mode5CurrentColor = 0;
-  HSVtoRGB(curModeColor[mode5CurrentColor], valueStringS.toInt(), valueStringV.toInt());
+  if(modeCurrentColor >5)modeCurrentColor = 0;
+  HSVtoRGB(curModeColor[modeCurrentColor], valueStringS.toInt(), valueStringV.toInt());
+}
+void runningLights3(){
+   if (millis() > (runTimer + valueStringSp.toInt())) {
+    valueStringH = valueStringH.toInt() + 10;
+    if (valueStringH > "361")valueStringH = "0";
+    HSVtoRGB(valueStringH.toInt(), valueStringS.toInt(), valueStringV.toInt());
+    //Serial.println(valueStringH);
+    runTimer = millis();
+  }
+  
 }
